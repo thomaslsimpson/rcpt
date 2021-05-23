@@ -4,15 +4,25 @@ import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 void main() async {
-/*
-  DBManager dbm = DBManager();
-  var thisMonth = MonthCounter().toString();
+
+  print("Starting DB Manager ...");
+  var thisMonth;
+  DBManager dbm;
+
+  dbm = DBManager();
+
+  print("DB Manager initial (non wait) complete.");
+  thisMonth = MonthCounter().toString();
   print("This month: $thisMonth");
-  var currentItems = dbm.getItems(thisMonth);
-  currentItems.forEach((item) {
-    print("Item $item");
+
+  dbm.whenReady((){
+    print("DB Manager is ready now.");
+    var currentItems = dbm.getItems(thisMonth);
+    currentItems.forEach((item) {
+      print("Item $item");
+    });
   });
-*/
+
 
   await Hive.initFlutter();
   await Hive.openBox('MAIN_DB');
@@ -328,23 +338,50 @@ class DBManager {
   static const String DB_INFO = "INFO_DB";
   var mainBox;
   var infoBox;
+  Future readyToUse;
+  bool ready= false;
 
   DBManager._internal() {
-    this._init();
+    print("DM Manager _internal, calling _init");
+    
+    readyToUse= this._init();
+    readyToUse.then( (f) {
+      print("DM Manager _internal, _init complete.");
+      ready= true;
+    });
+
+    print("DB Manager _internal exiting function.");
   }
   // this creates the static class singleton
   static final DBManager _globalSingletoneDBManager = DBManager._internal();
 
   // factory constructor which returns the singleton
   factory DBManager() {
+    print("DB Manager returning from factory constructor");
     return _globalSingletoneDBManager;
   }
 
   // the leading '_' makes the method private
-  void _init() async {
+  Future<void> _init() async {
+    print("DB Manager init ...");
     await Hive.initFlutter();
     mainBox = await Hive.openBox(DB_NAME);
     infoBox = await Hive.openBox(DB_INFO);
+    print("DB Manager init complete.");
+    return;
+  }
+
+  void whenReady(callback){
+    if(!ready){
+      print("DB Manager not ready to use yet ...");
+      readyToUse.then( (f) {
+        print("DB Manager good to go.");
+        callback();
+      });
+    } else {
+      print("DB Manager already ready.");
+      callback();
+    }
   }
 
   List getItems(month) {
