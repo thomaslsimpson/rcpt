@@ -4,6 +4,16 @@ import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 void main() async {
+/*
+  DBManager dbm = DBManager();
+  var thisMonth = MonthCounter().toString();
+  print("This month: $thisMonth");
+  var currentItems = dbm.getItems(thisMonth);
+  currentItems.forEach((item) {
+    print("Item $item");
+  });
+*/
+
   await Hive.initFlutter();
   await Hive.openBox('MAIN_DB');
 
@@ -306,5 +316,84 @@ class RCPTCardWidgetValue extends StatelessWidget {
               fontSize: 18,
               color: Colors.black,
             )));
+  }
+}
+
+//
+// This is a singleton wrapper over the Hive Box
+// var dmb= DBManager(); <- returns a singleton
+//
+class DBManager {
+  static const String DB_NAME = "MAIN_DB";
+  static const String DB_INFO = "INFO_DB";
+  var mainBox;
+  var infoBox;
+
+  DBManager._internal() {
+    this._init();
+  }
+  // this creates the static class singleton
+  static final DBManager _globalSingletoneDBManager = DBManager._internal();
+
+  // factory constructor which returns the singleton
+  factory DBManager() {
+    return _globalSingletoneDBManager;
+  }
+
+  // the leading '_' makes the method private
+  void _init() async {
+    await Hive.initFlutter();
+    mainBox = await Hive.openBox(DB_NAME);
+    infoBox = await Hive.openBox(DB_INFO);
+  }
+
+  List getItems(month) {
+    var result = mainBox.get(month);
+    return (result == null ? [] : result);
+  }
+
+  void addItem(month, item) {
+    var items = getItems(month);
+    infoBox.put('total_items', getNextID());
+    items.add(item);
+    mainBox.put(month, items);
+  }
+
+  int getNextID() {
+    var result = infoBox.get('total_items');
+    return (result == null ? 0 : result);
+  }
+
+  Listenable getListenable() {
+    return mainBox.listenable();
+  }
+}
+
+class MonthCounter {
+  var monthsAhead;
+
+  MonthCounter({this.monthsAhead = 0});
+
+  MonthCounter operator +(int ma) {
+    return MonthCounter(monthsAhead: this.monthsAhead + ma);
+  }
+
+  MonthCounter operator -(int ma) {
+    return MonthCounter(monthsAhead: this.monthsAhead - ma);
+  }
+
+  String toString() {
+    var now = new DateTime.now();
+    var months = now.month;
+    var year = now.year;
+    months += monthsAhead;
+    if (months < 1) {
+      months += 12;
+      year += 1;
+    } else if (months > 12) {
+      months -= 12;
+      year -= 1;
+    }
+    return "$months-$year";
   }
 }
