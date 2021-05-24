@@ -5,6 +5,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 void main() async {
 
+
+
   print("Starting DB Manager ...");
   var thisMonth;
   DBManager dbm;
@@ -17,27 +19,60 @@ void main() async {
 
   dbm.whenReady((){
     print("DB Manager is ready now.");
+
+    // this manually deletes the disk contents
+
+    //Hive.box('MAIN_DB').deleteFromDisk();
+    //Hive.box('INFO_DB').deleteFromDisk();
+
+
+    // add a bunch of test items
+
+/*
+    // index, mills-epoch, from, amount, for
+    var m0= MonthCounter(monthsAhead: -2).toString();
+    for(var i=0; i < 10; i++){
+      var dt= (DateTime.now().millisecondsSinceEpoch - (1000 * 60 * 60 * 24 * 60) ) - (i * 6000000);
+      var am= (i+10)*7;
+      dbm.addItem(m0, [0, dt, "From $i", "$am.00", "For month $m0 $dt"]);
+    }
+    m0= MonthCounter(monthsAhead: -1).toString();
+    for(var i=0; i < 10; i++){
+      var dt= (DateTime.now().millisecondsSinceEpoch - (1000 * 60 * 60 * 24 * 32) ) - (i * 6000000);
+      var am= (i+10)*7;
+      dbm.addItem(m0, [0, dt, "From $i", "$am.00", "For month $m0 $dt"]);
+    }
+    m0= MonthCounter().toString();
+    for(var i=0; i < 10; i++){
+      var dt= DateTime.now().millisecondsSinceEpoch - (i * 6000000);
+      var am= (i+10)*7;
+      dbm.addItem(m0, [0, dt, "From $i", "$am.00", "For month $m0 $dt"]);
+    }
+*/
+
+
     var currentItems = dbm.getItems(thisMonth);
     currentItems.forEach((item) {
-      print("Item $item");
+      print("Item $item ${item.length}");
     });
+
+    // we can start the application now.
+    // Needs to be a material app to have a Navigator
+    runApp(MaterialApp(
+      title: "Where does this title go?",
+      home: MyApp(),
+    ));
+
   });
-
-
-  await Hive.initFlutter();
-  await Hive.openBox('MAIN_DB');
-
-  // Needs to be a material app to have a Navigator
-  runApp(MaterialApp(
-    title: "Where does this title go?",
-    home: MyApp(),
-  ));
 }
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
-  var thisMonth;
-  var lastMonth;
+  var thisMonth = MonthCounter().toString();
+  var monthIndex= -1;
+  var lastMonth = MonthCounter(monthsAhead:-1).toString();
+  
+  var dbm = DBManager();
 
   @override
   Widget build(BuildContext context) {
@@ -51,31 +86,14 @@ class MyApp extends StatelessWidget {
           title: Text('My Receipt Book'),
         ),
         body: ValueListenableBuilder(
-          valueListenable: Hive.box('MAIN_DB').listenable(),
+          valueListenable: dbm.getListenable(),
           builder: (context, box, widget) {
-            // get the last two months from the box
-            var now = new DateTime.now();
-            thisMonth = "${now.month}-${now.year}";
-            if (now.month == 1) {
-              lastMonth = "12-${now.year - 1}";
-            } else {
-              lastMonth = "${now.month - 1}-${now.year}";
-            }
+            var thisMonthRCPTList = dbm.getItems(thisMonth);
+            thisMonthRCPTList.forEach((item) {
+              print("This month Item $item");
+            });
 
-            var thisMonthRCPTList = box.get(thisMonth);
-            if (thisMonthRCPTList == null) {
-              print("this month $thisMonth was null in listener: new or error");
-              thisMonthRCPTList = [];
-            }
-            var lastMonthRCPTList = box.get(lastMonth);
-            if (lastMonthRCPTList == null) {
-              print("this month $lastMonth was null in listener: new or error");
-              lastMonthRCPTList = [];
-            }
-
-            // todo: clear up the double use of RAM here
             var rcptList = [];
-            rcptList.addAll(lastMonthRCPTList);
             rcptList.addAll(thisMonthRCPTList);
 
             return ListView.builder(
@@ -84,11 +102,11 @@ class MyApp extends StatelessWidget {
               itemBuilder: (context, index) {
                 var rcptData = rcptList[index];
                 return RCPTCardWidget(
-                    id: index,
-                    date: DateTime.fromMillisecondsSinceEpoch(rcptData[0]),
-                    from: rcptData[1],
-                    amount: rcptData[2],
-                    whatFor: rcptData[3]);
+                    id: rcptData[0],
+                    date: DateTime.fromMillisecondsSinceEpoch(rcptData[1]),
+                    from: rcptData[2],
+                    amount: rcptData[3],
+                    whatFor: rcptData[4]);
               },
             );
           },
@@ -100,14 +118,7 @@ class MyApp extends StatelessWidget {
               MaterialPageRoute(
                   builder: (context) => AddRCPTPage(
                         onValueChanged: (value) {
-                          print("Result: $value");
-                          var database = Hive.box('MAIN_DB');
-                          var rcptListThisMonth = database.get(thisMonth);
-                          if (rcptListThisMonth == null) {
-                            rcptListThisMonth = [];
-                          }
-                          rcptListThisMonth.add(value);
-                          database.put(thisMonth, rcptListThisMonth);
+                          dbm.addItem(thisMonth, value);
                         },
                       )),
             );
@@ -133,21 +144,21 @@ class _AddRCPTPageState extends State<AddRCPTPage> {
   Widget build(BuildContext context) {
     var selectedDate = DateTime.now();
 
-    var result = [selectedDate.millisecondsSinceEpoch, "", "", ""];
+    var result = [-1, selectedDate.millisecondsSinceEpoch, "", "", ""];
 
     var tfFrom = TextField(
-      onChanged: (value) {
-        result[1] = value;
-      },
-    );
-    var tfAmount = TextField(
       onChanged: (value) {
         result[2] = value;
       },
     );
-    var tfFor = TextField(
+    var tfAmount = TextField(
       onChanged: (value) {
         result[3] = value;
+      },
+    );
+    var tfFor = TextField(
+      onChanged: (value) {
+        result[4] = value;
       },
     );
 
@@ -386,24 +397,53 @@ class DBManager {
 
   List getItems(month) {
     var result = mainBox.get(month);
-    return (result == null ? [] : result);
+    if(result == null) return [];
+    result.sort(sortItems);
+    return result;
   }
 
   void addItem(month, item) {
+    print("DB Manager addItem $month $item");
     var items = getItems(month);
-    infoBox.put('total_items', getNextID());
+    item[0]= getNextID();
+    infoBox.put('total_items', item[0]+1);
     items.add(item);
     mainBox.put(month, items);
+    print("DB Manager added Item $month $item");
   }
+
+
 
   int getNextID() {
     var result = infoBox.get('total_items');
     return (result == null ? 0 : result);
   }
 
-  Listenable getListenable() {
-    return mainBox.listenable();
+  int getDBVersion(){
+    var result = infoBox.get('db_version');
+    return (result == null ? 0 : result);
   }
+  int setDBVersion(int dbv){
+    infoBox.put('db_version', dbv);
+  }
+
+  Listenable getListenable() {
+    return Hive.box(DB_NAME).listenable();
+  }
+
+/*
+  void checkVersion(){
+    // upgrade db version is necessary
+    //var CURRENT_DB_VERSION= 1;
+    var dbVersion= getDBVersion();
+    if(dbVersion == 0){
+      print("DB Needs to be cleared");
+
+    }
+  }
+*/
+
+
 }
 
 class MonthCounter {
@@ -434,3 +474,7 @@ class MonthCounter {
     return "$months-$year";
   }
 }
+
+int sortItems(a, b){
+  return b[0] - a[0];
+} 
