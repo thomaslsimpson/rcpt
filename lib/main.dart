@@ -1,57 +1,47 @@
 //import 'package:flutter/foundation.dart';
+
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+
 void main() async {
 
-
-
   print("Starting DB Manager ...");
-  var thisMonth;
   DBManager dbm;
 
   dbm = DBManager();
 
   print("DB Manager initial (non wait) complete.");
-  thisMonth = MonthCounter().toString();
-  print("This month: $thisMonth");
 
   dbm.whenReady((){
     print("DB Manager is ready now.");
 
     // this manually deletes the disk contents
-
     //Hive.box('MAIN_DB').deleteFromDisk();
     //Hive.box('INFO_DB').deleteFromDisk();
 
-
-    // add a bunch of test items
-
-/*
     // index, mills-epoch, from, amount, for
-    var m0= MonthCounter(monthsAhead: -2).toString();
-    for(var i=0; i < 10; i++){
-      var dt= (DateTime.now().millisecondsSinceEpoch - (1000 * 60 * 60 * 24 * 60) ) - (i * 6000000);
-      var am= (i+10)*7;
-      dbm.addItem(m0, [0, dt, "From $i", "$am.00", "For month $m0 $dt"]);
+    // makes fake entries for testing
+    /*
+    var monthsToAdd= 16;
+    var m0;
+    for(var j=monthsToAdd; j > -1; j--){
+      m0= MonthCounter(monthsAhead: (0 - j)).toString();
+      DateTime d0= DateTime.now().subtract(Duration(days:(30 * j)));
+      for(var i=0; i < 10; i++){
+        var dt= d0.millisecondsSinceEpoch;
+        var am= (i+10)*7;
+        print("Adding test item $i, $am, $m0, $dt");
+        dbm.addItem(m0, [0, dt, "From $i", "$am.00", "For month $m0 $dt"]);
+        d0= d0.add(Duration(hours: 8));
+      }
     }
-    m0= MonthCounter(monthsAhead: -1).toString();
-    for(var i=0; i < 10; i++){
-      var dt= (DateTime.now().millisecondsSinceEpoch - (1000 * 60 * 60 * 24 * 32) ) - (i * 6000000);
-      var am= (i+10)*7;
-      dbm.addItem(m0, [0, dt, "From $i", "$am.00", "For month $m0 $dt"]);
-    }
-    m0= MonthCounter().toString();
-    for(var i=0; i < 10; i++){
-      var dt= DateTime.now().millisecondsSinceEpoch - (i * 6000000);
-      var am= (i+10)*7;
-      dbm.addItem(m0, [0, dt, "From $i", "$am.00", "For month $m0 $dt"]);
-    }
-*/
+    */
 
+    dbm.getMonths().forEach( (m) => print("Month: $m") );
 
-    var currentItems = dbm.getItems(thisMonth);
+    var currentItems = dbm.getItems(MonthCounter().toString());
     currentItems.forEach((item) {
       print("Item $item ${item.length}");
     });
@@ -60,72 +50,108 @@ void main() async {
     // Needs to be a material app to have a Navigator
     runApp(MaterialApp(
       title: "Where does this title go?",
-      home: MyApp(),
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: MainPage(),
     ));
 
   });
 }
 
-class MyApp extends StatelessWidget {
+
+class MainPage extends StatefulWidget {
+  @override
+  MainPageStateWidget createState() => MainPageStateWidget();
+}
+
+class MainPageStateWidget extends State<MainPage> {
   // This widget is the root of your application.
-  var thisMonth = MonthCounter().toString();
-  var monthIndex= -1;
-  var lastMonth = MonthCounter(monthsAhead:-1).toString();
-  
+  var currentMonth= MonthCounter().toString();
+
   var dbm = DBManager();
 
   @override
+  void dispose(){
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'My Receipt Book',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
+    var monthList= <Widget>[];
+    dbm.getMonths().forEach( (month) {
+      monthList.add(ListTile(
+        title: Text(month)
+      ));
+    });
+
+    return Scaffold(
+      backgroundColor: Colors.amber,
+      appBar: AppBar(
+        title: Text('My Receipts'), // app bar title
       ),
-      home: Scaffold(
-        appBar: AppBar(
-          title: Text('My Receipt Book'),
-        ),
-        body: ValueListenableBuilder(
-          valueListenable: dbm.getListenable(),
-          builder: (context, box, widget) {
-            var thisMonthRCPTList = dbm.getItems(thisMonth);
-            thisMonthRCPTList.forEach((item) {
-              print("This month Item $item");
-            });
-
-            var rcptList = [];
-            rcptList.addAll(thisMonthRCPTList);
-
-            return ListView.builder(
-              //reverse: true,
-              itemCount: rcptList.length,
-              itemBuilder: (context, index) {
-                var rcptData = rcptList[index];
-                return RCPTCardWidget(
-                    id: rcptData[0],
-                    date: DateTime.fromMillisecondsSinceEpoch(rcptData[1]),
-                    from: rcptData[2],
-                    amount: rcptData[3],
-                    whatFor: rcptData[4]);
+      drawer: Drawer(child: ListView.builder(
+        itemCount: dbm.getMonths().length + 1,
+        itemBuilder: (BuildContext cntx, int index){
+          if(index == 0){
+            return DrawerHeader(
+              decoration: BoxDecoration(color: Colors.lightBlue),
+              child: Text("My Receipts v0.1"),
+            ); // DrawerHeader
+          } else {
+            var month= dbm.getMonths()[index -1];
+            return ListTile(
+              leading: Icon(Icons.calendar_today),
+              title: Text("Display Month: $month"),
+              onTap: () {
+                //Navigator.pop(context);
+                setState(() { currentMonth = month; });
+                Navigator.of(context, rootNavigator: true).pop();
               },
             );
-          },
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => AddRCPTPage(
-                        onValueChanged: (value) {
-                          dbm.addItem(thisMonth, value);
-                        },
-                      )),
-            );
-          },
-          child: Icon(Icons.add),
-        ), // This trailing comma makes auto-formatting nicer for build methods.
+          } // else
+        },
+      ),),
+      body: ValueListenableBuilder(
+        valueListenable: dbm.getListenable(),
+        builder: (context, box, widget) {
+          var thisMonthRCPTList = dbm.getItems(currentMonth);
+          thisMonthRCPTList.forEach((item) {
+            print("This month Item $item");
+          });
+
+          var rcptList = [];
+          rcptList.addAll(thisMonthRCPTList);
+
+          return ListView.builder(
+            //reverse: true,
+            itemCount: rcptList.length,
+            itemBuilder: (context, index) {
+              var rcptData = rcptList[index];
+              return RCPTCardWidget(
+                  id: rcptData[0],
+                  date: DateTime.fromMillisecondsSinceEpoch(rcptData[1]),
+                  from: rcptData[2],
+                  amount: rcptData[3],
+                  whatFor: rcptData[4]);
+            },
+          );
+        },
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => AddRCPTPage(
+                      onValueChanged: (value) {
+                        dbm.addItem(currentMonth, value);
+                      },
+                    )),
+          );
+        },
+        child: Icon(Icons.add),
+      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
@@ -145,6 +171,13 @@ class _AddRCPTPageState extends State<AddRCPTPage> {
     var selectedDate = DateTime.now();
 
     var result = [-1, selectedDate.millisecondsSinceEpoch, "", "", ""];
+
+    var tc= TextEditingController();
+    var tfDate = TextField(
+      enabled: false,
+      controller: tc,
+    );
+    tc.text= "${selectedDate.toString().split(' ')[0]}";
 
     var tfFrom = TextField(
       onChanged: (value) {
@@ -173,9 +206,7 @@ class _AddRCPTPageState extends State<AddRCPTPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: <Widget>[
-              RCPTFormField(
-                  fieldName: "Date",
-                  field: Text("${selectedDate.toString().split(' ')[0]}")),
+              RCPTFormField(fieldName: "Date", field: tfDate), 
               RCPTFormField(fieldName: "From", field: tfFrom),
               RCPTFormField(fieldName: "Amount", field: tfAmount),
               RCPTFormField(fieldName: "For", field: tfFor),
@@ -228,6 +259,7 @@ class RCPTFormField extends StatelessWidget {
 
     var fieldWidget = Container(
       margin: const EdgeInsets.fromLTRB(0, 8, 8, 16),
+      padding: const EdgeInsets.fromLTRB(4, 0, 0, 0),
       color: Colors.lightBlue.shade50,
       child: field,
     );
@@ -257,7 +289,8 @@ class RCPTCardWidget extends StatelessWidget {
     String dateText = date.toString().split(' ')[0];
 
     return Card(
-        margin: EdgeInsets.fromLTRB(4, 4, 4, 12),
+        margin: EdgeInsets.fromLTRB(6, 8, 6, 8),
+        elevation: 6,
         child: Container(
           padding: EdgeInsets.fromLTRB(2, 4, 4, 12),
           child: Column(children: [
@@ -395,6 +428,23 @@ class DBManager {
     }
   }
 
+  int sortMonths(a, b){
+    var s1= a.toString().split('-');
+    var s2= b.toString().split('-');
+    a= "${s1[1]}-${s1[0].padLeft(2,'0')}";
+    b= "${s2[1]}-${s2[0].padLeft(2,'0')}";
+    return b.compareTo(a) as int;
+  }
+
+  List getMonths(){
+    var result = mainBox.keys.toList();
+    print("getMonths $result");
+    if(result == null) return [];
+    result.sort(sortMonths);
+    return result;
+  }
+
+
   List getItems(month) {
     var result = mainBox.get(month);
     if(result == null) return [];
@@ -466,10 +516,10 @@ class MonthCounter {
     months += monthsAhead;
     if (months < 1) {
       months += 12;
-      year += 1;
+      year -= 1;
     } else if (months > 12) {
       months -= 12;
-      year -= 1;
+      year += 1;
     }
     return "$months-$year";
   }
@@ -478,3 +528,4 @@ class MonthCounter {
 int sortItems(a, b){
   return b[0] - a[0];
 } 
+
