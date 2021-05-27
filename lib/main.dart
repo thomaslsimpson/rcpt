@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-
+import 'package:flutter_sms/flutter_sms.dart';
 
 void main() async {
 
@@ -17,12 +17,14 @@ void main() async {
   dbm.whenReady((){
     print("DB Manager is ready now.");
 
+    // -----------------------------
     // this manually deletes the disk contents
     //Hive.box('MAIN_DB').deleteFromDisk();
     //Hive.box('INFO_DB').deleteFromDisk();
 
-    // index, mills-epoch, from, amount, for
+    // -----------------------------
     // makes fake entries for testing
+    // index, mills-epoch, from, amount, for
     /*
     var monthsToAdd= 16;
     var m0;
@@ -214,14 +216,29 @@ class _AddRCPTPageState extends State<AddRCPTPage> {
               Row(
                 children: [
                   Expanded(
-                      child: TextButton(
-                    child: Text("Cancel"),
-                    onPressed: () => {Navigator.pop(context)},
+                    child: TextButton(
+                      child: Text("Cancel"),
+                      onPressed: () => {Navigator.pop(context)},
                   )),
                   Expanded(
                     child: TextButton(
                       child: Text("Save"),
                       onPressed: () {
+                        widget.onValueChanged(result);
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ),
+                ]
+              ),
+              Divider(),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      child: Text("Save and Text"),
+                      onPressed: () {
+                        sendTextRCPT();
                         widget.onValueChanged(result);
                         Navigator.pop(context);
                       },
@@ -235,6 +252,12 @@ class _AddRCPTPageState extends State<AddRCPTPage> {
       ),
     );
   }
+  
+  void sendTextRCPT() async {
+    String result = await sendSMS(message: "text", recipients: ["6013410440"]);
+    print("Text result: $result");
+  }
+
 }
 
 //
@@ -301,7 +324,7 @@ class RCPTCardWidget extends StatelessWidget {
                 Expanded(flex: 3, child: RCPTCardWidgetField("No.")),
                 Expanded(
                     flex: 6,
-                    child: Text("$id",
+                    child: Text("$id", textAlign: TextAlign.right,
                         style: TextStyle(color: Colors.red, fontSize: 24))),
               ],
             ),
@@ -316,7 +339,7 @@ class RCPTCardWidget extends StatelessWidget {
                 Expanded(flex: 13, child: RCPTCardWidgetField("Amount")),
                 Expanded(
                   flex: 8,
-                  child: RCPTCardWidgetValue(amount),
+                  child: RCPTCardWidgetValue(amount, align: TextAlign.right,),
                 ),
               ],
             ),
@@ -359,7 +382,8 @@ class RCPTCardWidgetValue extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-        padding: EdgeInsets.fromLTRB(0, 8, 4, 8),
+        padding: EdgeInsets.fromLTRB(0, 8, 4, 2),
+        margin: EdgeInsets.fromLTRB(0, 0, 4, 6),
         decoration: const BoxDecoration(
           border:
               Border(bottom: BorderSide(width: 1.0, color: Colors.blueGrey)),
