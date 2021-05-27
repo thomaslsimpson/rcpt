@@ -362,7 +362,7 @@ class RCPTCardWidgetField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-        padding: EdgeInsets.all(8),
+        padding: EdgeInsets.all(6),
         child: Text(text,
             textAlign: align,
             style: TextStyle(
