@@ -127,6 +127,7 @@ class MainPageStateWidget extends State<MainPage> {
 
           return ListView.builder(
             //reverse: true,
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 128),
             itemCount: rcptList.length,
             itemBuilder: (context, index) {
               var rcptData = rcptList[index];
@@ -231,7 +232,7 @@ class _AddRCPTPageState extends State<AddRCPTPage> {
                   ),
                 ]
               ),
-              Divider(),
+/*              Divider(),
               Row(
                 children: [
                   Expanded(
@@ -246,6 +247,7 @@ class _AddRCPTPageState extends State<AddRCPTPage> {
                   ),
                 ],
               ),
+              */
             ],
           ),
         ),
