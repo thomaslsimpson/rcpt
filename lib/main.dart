@@ -273,7 +273,7 @@ class RCPTFormField extends StatelessWidget {
   Widget build(BuildContext context) {
     var textLabel = Container(
         alignment: Alignment.bottomRight,
-        padding: const EdgeInsets.fromLTRB(8, 4, 4, 0),
+        padding: const EdgeInsets.fromLTRB(2, 4, 4, 0),
         child: Text(fieldName,
             style: TextStyle(
               color: Colors.blueGrey,
