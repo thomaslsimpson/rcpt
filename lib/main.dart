@@ -179,23 +179,25 @@ class _AddRCPTPageState extends State<AddRCPTPage> {
     var tfDate = TextField(
       enabled: false,
       controller: tc,
+      decoration: InputDecoration( border: OutlineInputBorder()),
     );
     tc.text= "${selectedDate.toString().split(' ')[0]}";
 
     var tfFrom = TextField(
-      onChanged: (value) {
-        result[2] = value;
-      },
+      onChanged: (value) { result[2] = value; },
+      decoration: InputDecoration( border: OutlineInputBorder(), labelText: 'From'),
     );
     var tfAmount = TextField(
       onChanged: (value) {
         result[3] = value;
       },
+      decoration: InputDecoration( border: OutlineInputBorder(), labelText: 'Amount'),
     );
     var tfFor = TextField(
       onChanged: (value) {
         result[4] = value;
       },
+      decoration: InputDecoration( border: OutlineInputBorder(), labelText: 'For'),
     );
 
     return Scaffold(
@@ -209,10 +211,10 @@ class _AddRCPTPageState extends State<AddRCPTPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: <Widget>[
-              RCPTFormField(fieldName: "Date", field: tfDate), 
-              RCPTFormField(fieldName: "From", field: tfFrom),
-              RCPTFormField(fieldName: "Amount", field: tfAmount),
-              RCPTFormField(fieldName: "For", field: tfFor),
+              RCPTFormField(icon: Icons.calendar_today, fieldName: "Date", field: tfDate), 
+              RCPTFormField(icon: Icons.person, fieldName: "From", field: tfFrom),
+              RCPTFormField(icon: Icons.paid, fieldName: "Amount", field: tfAmount),
+              RCPTFormField(icon: Icons.help_outline, fieldName: "For", field: tfFor),
               Divider(),
               Row(
                 children: [
@@ -262,14 +264,16 @@ class _AddRCPTPageState extends State<AddRCPTPage> {
 
 }
 
+
 //
 // This is a form field widget used on the Add Receipt Page
 //
 class RCPTFormField extends StatelessWidget {
   final fieldName;
   final field;
+  var icon= null;
 
-  RCPTFormField({Key key, this.fieldName, this.field}) : super(key: key);
+  RCPTFormField({Key key, this.fieldName, this.field, this.icon}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -289,10 +293,12 @@ class RCPTFormField extends StatelessWidget {
       child: field,
     );
 
+    // Icon
+
     return Row(
       children: <Widget>[
-        Expanded(flex: 1, child: textLabel),
-        Expanded(flex: 3, child: fieldWidget),
+        Expanded(flex: 1, child: Icon(icon)),
+        Expanded(flex: 5, child: fieldWidget),
       ],
     );
   }
@@ -349,6 +355,7 @@ class RCPTCardWidget extends StatelessWidget {
               children: [
                 Expanded(flex: 3, child: RCPTCardWidgetField("For")),
                 Expanded(flex: 18, child: RCPTCardWidgetValue(whatFor)),
+                //Expanded(flex: 3, child: Icon(Icons.ios_share_outlined)),
               ],
             ),
           ]),
