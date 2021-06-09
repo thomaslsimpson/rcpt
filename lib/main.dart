@@ -3,7 +3,13 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:flutter_sms/flutter_sms.dart';
+
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+
+//import 'package:share_plus/share_plus.dart';
+//import 'package:flutter_sms/flutter_sms.dart';
 
 void main() async {
 
@@ -258,8 +264,8 @@ class _AddRCPTPageState extends State<AddRCPTPage> {
   }
   
   void sendTextRCPT() async {
-    String result = await sendSMS(message: "text", recipients: ["6013410440"]);
-    print("Text result: $result");
+    //String result = await sendSMS(message: "text", recipients: ["6013410440"]);
+    //print("Text result: $result");
   }
 
 }
@@ -354,8 +360,47 @@ class RCPTCardWidget extends StatelessWidget {
             Row(
               children: [
                 Expanded(flex: 3, child: RCPTCardWidgetField("For")),
-                Expanded(flex: 18, child: RCPTCardWidgetValue(whatFor)),
-                //Expanded(flex: 3, child: Icon(Icons.ios_share_outlined)),
+                Expanded(flex: 15, child: RCPTCardWidgetValue(whatFor)),
+                // Share.share('check out my website https://example.com');
+                Expanded(flex: 3, child: IconButton(
+                  icon: Icon(Icons.ios_share_outlined),
+                  onPressed: () async {
+                    print("Pre print");
+
+      final doc = pw.Document();
+
+      doc.addPage(pw.Page(
+        pageFormat: PdfPageFormat.letter,
+        build: (pw.Context context) {
+          return pw.Container(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text('Reciept Number: $id', textScaleFactor: 1.5),
+                pw.Text('Date: $dateText', textScaleFactor: 1.5),
+                pw.Text('From: $from', textScaleFactor: 1.5),
+                pw.Text('Amount: $amount', textScaleFactor: 1.5),
+                pw.Text('For: $whatFor', textScaleFactor: 1.5),
+              ]
+            ),
+          ); // Center
+        })); // Page
+      await Printing.sharePdf(bytes: await doc.save(), filename: 'rcpt-$id.pdf');
+
+                    /*
+                    await Printing.layoutPdf(
+                        onLayout: (PdfPageFormat format) async => await Printing.convertHtml(
+                              format: format,
+                              html: '<html><body><p>Hello!</p></body></html>',
+                            ));
+                    print("post await");
+                    */
+
+                    //Share.share(
+                    //  "This is my RCPT."
+                    //);
+                  },
+                )),
               ],
             ),
           ]),
